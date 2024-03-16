@@ -1,0 +1,8 @@
+version: "3"
+
+services:
+  app:
+    build: ./app
+    environment:
+      - BOT_TOKEN=7053310527:AAExrwk4_GnHtRlN1uDGuiQsZdoNvF2K7zc
+      - ENV=development

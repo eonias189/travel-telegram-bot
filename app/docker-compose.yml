@@ -1,0 +1,12 @@
+version: "3"
+
+services:
+  dev-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      - BOT_TOKEN=7053310527:AAExrwk4_GnHtRlN1uDGuiQsZdoNvF2K7zc
+      - ENV=local
+    volumes:
+      - ".:/app"
