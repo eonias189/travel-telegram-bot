@@ -26,3 +26,17 @@ func (c *Context) SendString(s string) error {
 	_, err := c.Bot.Send(msg)
 	return err
 }
+
+func (c *Context) SetKeyboard(keyboard tgbotapi.ReplyKeyboardMarkup, text string) error {
+	msg := tgbotapi.NewMessage(c.Update.Message.Chat.ID, text)
+	msg.ReplyMarkup = keyboard
+	_, err := c.Bot.Send(msg)
+	return err
+}
+
+func (c *Context) CloseKeyboard(text string) error {
+	msg := tgbotapi.NewMessage(c.Update.Message.Chat.ID, text)
+	msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
+	_, err := c.Bot.Send(msg)
+	return err
+}

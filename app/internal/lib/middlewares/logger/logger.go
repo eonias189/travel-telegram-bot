@@ -5,7 +5,7 @@ import (
 	"log/slog"
 
 	texthandler "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/textHandler"
-	"github.com/Central-University-IT-prod/backend-eonias189/internal/lib/tgrouter"
+	"github.com/Central-University-IT-prod/backend-eonias189/internal/tgrouter"
 )
 
 func log(l *slog.Logger, ctx *tgrouter.Context) {

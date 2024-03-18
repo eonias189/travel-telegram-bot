@@ -2,7 +2,7 @@ package clearcontext
 
 import (
 	texthandler "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/textHandler"
-	"github.com/Central-University-IT-prod/backend-eonias189/internal/lib/tgrouter"
+	"github.com/Central-University-IT-prod/backend-eonias189/internal/tgrouter"
 )
 
 func New() tgrouter.Middleware {

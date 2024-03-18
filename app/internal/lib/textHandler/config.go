@@ -1,6 +1,6 @@
 package texthandler
 
-import "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/tgrouter"
+import "github.com/Central-University-IT-prod/backend-eonias189/internal/tgrouter"
 
 type Config struct {
 	OnUnknownContext tgrouter.HandlerFunc
