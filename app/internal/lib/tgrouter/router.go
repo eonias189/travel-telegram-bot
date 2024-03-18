@@ -12,7 +12,7 @@ type HandlerFunc func(ctx *Context) error
 type Middleware func(next HandlerFunc) HandlerFunc
 
 type Router interface {
-	Handle(command string, handler HandlerFunc)
+	On(command string, handler HandlerFunc)
 	Run(ctx context.Context, token string) error
 	Close()
 	Use(middleware Middleware) Router
@@ -21,12 +21,13 @@ type Router interface {
 type routerImpl struct {
 	routes      map[string]HandlerFunc
 	middlewares []Middleware
+	ctx         context.Context
 	cfg         *Config
 	wg          sync.WaitGroup
 	mu          sync.RWMutex
 }
 
-func (r *routerImpl) Handle(command string, handler HandlerFunc) {
+func (r *routerImpl) On(command string, handler HandlerFunc) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	r.routes[command] = handler
@@ -48,15 +49,22 @@ func (r *routerImpl) withMWares(handler HandlerFunc) HandlerFunc {
 }
 
 func (r *routerImpl) handle(handler HandlerFunc, ctx *Context) {
-	defer func() {
-		err := recover()
-		if err != nil {
-			r.cfg.OnError(err.(error))
-		}
-	}()
 	err := r.withMWares(handler)(ctx)
 	if err != nil {
 		r.cfg.OnError(err)
+	}
+}
+
+func (r *routerImpl) newContext(update tgbotapi.Update, bot *tgbotapi.BotAPI) *Context {
+	return &Context{
+		Update: update,
+		Bot:    bot,
+		ctx:    r.ctx,
+		setContext: func(ctx context.Context) {
+			r.mu.RLock()
+			defer r.mu.RLock()
+			r.ctx = ctx
+		},
 	}
 }
 
@@ -80,11 +88,7 @@ func (r *routerImpl) Run(ctx context.Context, token string) error {
 						continue
 					}
 
-					ctx := &Context{
-						Update:  update,
-						Bot:     bot,
-						Context: context.Background(),
-					}
+					ctx := r.newContext(update, bot)
 
 					if !update.Message.IsCommand() {
 						r.handle(r.cfg.OnText, ctx)
@@ -118,5 +122,6 @@ func NewRouter(cfg *Config) Router {
 		routes:      map[string]HandlerFunc{},
 		middlewares: make([]Middleware, 0),
 		cfg:         handleConfig(cfg),
+		ctx:         context.Background(),
 	}
 }

@@ -2,43 +2,66 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
+	clearcontext "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/middlewares/clearContext"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/lib/middlewares/logger"
+	texthandler "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/textHandler"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/lib/tgrouter"
 )
 
 type App struct {
-	l *slog.Logger
-	r tgrouter.Router
+	logger      *slog.Logger
+	router      tgrouter.Router
+	textHandler *texthandler.TextHandler
 }
 
 func (a *App) Run(ctx context.Context, token string) error {
-	a.l.Info("starting")
+	a.logger.Info("starting")
 
-	a.r.Use(logger.New(a.l))
-	a.r.Handle("start", func(ctx *tgrouter.Context) error {
+	a.router.Use(logger.New(a.logger)).Use(clearcontext.New())
+
+	a.router.On("start", func(ctx *tgrouter.Context) error {
 		return ctx.SendString("starting")
 	})
-	a.r.Handle("err", func(ctx *tgrouter.Context) error {
-		return fmt.Errorf("err")
+	a.router.On("reverse", func(ctx *tgrouter.Context) error {
+		texthandler.SetDialogContext(ctx, "reverse")
+		return nil
 	})
 
-	return a.r.Run(ctx, token)
+	a.textHandler.OnContext("reverse", func(ctx *tgrouter.Context) error {
+		// texthandler.SetDialogContext(ctx, "")
+		text := ctx.Update.Message.Text
+
+		reverse := func(s string) string {
+			var res string
+			for i := len(s) - 1; i >= 0; i-- {
+				res += string(s[i])
+			}
+			return res
+		}
+
+		return ctx.SendString(reverse(text))
+
+	})
+
+	return a.router.Run(ctx, token)
 }
 
 func (a *App) Close() {
-	a.r.Close()
+	a.router.Close()
 }
 
 func New(l *slog.Logger) *App {
-	router := tgrouter.NewRouter(&tgrouter.Config{
-		OnText: func(ctx *tgrouter.Context) error {
-			return ctx.SendString("пока не принимаю текстовые сообщения")
+	texthandler := texthandler.New(&texthandler.Config{
+		OnUnknownContext: func(ctx *tgrouter.Context) error {
+			return ctx.SendString("non-context messages are not handling")
 		},
+	})
+	router := tgrouter.NewRouter(&tgrouter.Config{
+		OnText:  texthandler.ToHandler(),
 		Workers: 5,
 	})
 
-	return &App{l: l, r: router}
+	return &App{logger: l, router: router, textHandler: texthandler}
 }
