@@ -8,5 +8,19 @@ services:
     environment:
       - BOT_TOKEN=7053310527:AAExrwk4_GnHtRlN1uDGuiQsZdoNvF2K7zc
       - ENV=local
+      - REDIS_ADDRESS=redis:6379
+      - REDIS_DB=0
     volumes:
       - "./app:/app"
+    depends_on:
+      - redis
+  redis:
+    image: redis/redis-stack
+    volumes:
+      - redis-data:/data
+    ports:
+      - 6379:6379
+      - 8001:8001
+
+volumes:
+  redis-data:

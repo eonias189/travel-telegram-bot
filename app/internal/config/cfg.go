@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 )
 
 type LoggerEnv string
@@ -18,21 +19,43 @@ func ErrMissingEnvVar(variable string) error {
 }
 
 type Config struct {
-	Env      LoggerEnv
-	BotToken string
+	Env           LoggerEnv
+	BotToken      string
+	RedisAddr     string
+	RedisUser     string
+	RedisPassword string
+	RedisDB       int
 }
 
 func Get() (*Config, error) {
-	cfg := &Config{}
-
 	env := os.Getenv("ENV")
-	cfg.Env = LoggerEnv(env)
 
 	token := os.Getenv("BOT_TOKEN")
 	if token == "" {
 		return nil, ErrMissingEnvVar("BOT_TOKEN")
 	}
 
-	cfg.BotToken = token
-	return cfg, nil
+	rhaddr := os.Getenv("REDIS_ADDRESS")
+	if rhaddr == "" {
+		return nil, ErrMissingEnvVar("REDIS_ADDRESS")
+	}
+
+	ruser := os.Getenv("REDIS_USER")
+
+	rpassword := os.Getenv("REDIS_PASSWORD")
+
+	rdb := os.Getenv("REDIS_DB")
+	rdbInt, err := strconv.Atoi(rdb)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Config{
+		Env:           LoggerEnv(env),
+		BotToken:      token,
+		RedisAddr:     rhaddr,
+		RedisUser:     ruser,
+		RedisPassword: rpassword,
+		RedisDB:       rdbInt,
+	}, nil
 }
