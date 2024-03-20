@@ -4,20 +4,19 @@ import (
 	"context"
 	"log/slog"
 
-	texthandler "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/textHandler"
-	"github.com/Central-University-IT-prod/backend-eonias189/internal/tgrouter"
+	"github.com/Central-University-IT-prod/backend-eonias189/internal/tgapi"
 )
 
-func log(l *slog.Logger, ctx *tgrouter.Context) {
-	l.
-		With(slog.String("dialog context", texthandler.GetDialogContext(ctx))).
-		Log(context.TODO(), slog.LevelInfo, ctx.Update.Message.Text)
+type DialogContextProvider interface {
+	GetDialogContext(ctx *tgapi.Context) string
 }
 
-func New(l *slog.Logger) tgrouter.Middleware {
-	return func(next tgrouter.HandlerFunc) tgrouter.HandlerFunc {
-		return func(ctx *tgrouter.Context) error {
-			log(l, ctx)
+func New(logger *slog.Logger, dialogProvider DialogContextProvider) tgapi.Middleware {
+	return func(next tgapi.HandlerFunc) tgapi.HandlerFunc {
+		return func(ctx *tgapi.Context) error {
+			logger.
+				With(slog.String("dialog context", dialogProvider.GetDialogContext(ctx))).
+				Log(context.TODO(), slog.LevelInfo, ctx.Update.Message.Text)
 			return next(ctx)
 		}
 	}

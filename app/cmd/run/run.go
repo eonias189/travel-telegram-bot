@@ -10,6 +10,7 @@ import (
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/app"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/config"
 	applogger "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/loggers/appLogger"
+	"github.com/Central-University-IT-prod/backend-eonias189/internal/service"
 )
 
 func main() {
@@ -20,7 +21,14 @@ func main() {
 	}
 
 	logger := applogger.New(cfg.Env)
-	app := app.New(logger)
+
+	rdb, err := service.Connect(cfg.RedisAddr, cfg.RedisUser, cfg.RedisPassword, cfg.RedisDB)
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(0)
+	}
+
+	app := app.New(rdb, logger)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	sigCh := make(chan os.Signal, 1)
@@ -28,8 +36,12 @@ func main() {
 	go func() {
 		<-sigCh
 		cancel()
-		app.Close()
+		if rdb.Save(context.TODO()).Err() == nil {
+			logger.Info("data saved")
+		}
 	}()
+
+	logger.Info("connected to redis")
 
 	err = app.Run(ctx, cfg.BotToken)
 	if err != nil {

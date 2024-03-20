@@ -1,4 +1,4 @@
-package tgrouter
+package tgapi
 
 import (
 	"context"
@@ -7,18 +7,21 @@ import (
 )
 
 type Context struct {
-	Update     tgbotapi.Update
-	Bot        *tgbotapi.BotAPI
-	ctx        context.Context
-	setContext func(context.Context)
+	Update tgbotapi.Update
+	Bot    *tgbotapi.BotAPI
+	ctx    context.Context
 }
 
 func (c *Context) Ctx() context.Context {
 	return c.ctx
 }
 
-func (c *Context) SetContextValue(key string, value any) {
-	c.setContext(context.WithValue(c.ctx, key, value))
+func (c *Context) WithCtx(ctx context.Context) *Context {
+	return &Context{
+		Update: c.Update,
+		Bot:    c.Bot,
+		ctx:    ctx,
+	}
 }
 
 func (c *Context) SendString(s string) error {

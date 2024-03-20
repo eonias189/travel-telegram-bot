@@ -3,15 +3,19 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
+	"time"
 
-	"github.com/Central-University-IT-prod/backend-eonias189/internal/lib/keyboards/menu"
-	someimg "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/keyboards/someImg"
+	commandrouter "github.com/Central-University-IT-prod/backend-eonias189/internal/commandRouter"
+	contextrouter "github.com/Central-University-IT-prod/backend-eonias189/internal/contextRouter"
+	dialogcontext "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/dialogContext"
+	"github.com/Central-University-IT-prod/backend-eonias189/internal/lib/keyboards"
 	clearcontext "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/middlewares/clearContext"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/lib/middlewares/logger"
-	texthandler "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/textHandler"
-	"github.com/Central-University-IT-prod/backend-eonias189/internal/tgrouter"
-	"github.com/Central-University-IT-prod/backend-eonias189/internal/view"
+	"github.com/Central-University-IT-prod/backend-eonias189/internal/service"
+	"github.com/Central-University-IT-prod/backend-eonias189/internal/tgapi"
+	"github.com/redis/go-redis/v9"
 )
 
 var (
@@ -19,47 +23,54 @@ var (
 )
 
 type App struct {
-	logger      *slog.Logger
-	router      tgrouter.Router
-	view        view.View
-	textHandler *texthandler.TextHandler
+	logger *slog.Logger
+	api    *tgapi.Api
+	rdb    *redis.Client
 }
 
-func (a *App) Run(ctx context.Context, token string) error {
-	a.logger.Info("starting")
+func (a *App) handleAll() {
+	cash := service.NewRedisCash(a.rdb.Conn(), time.Hour)
+	dialogContextProvider := dialogcontext.NewProvider(cash)
 
-	a.view.AddImage("menu", menu.New())
-	a.view.AddImage("another", someimg.New())
+	cmdr := commandrouter.New()
+	cmdr.Use(clearcontext.NewBeforeCleaner(dialogContextProvider))
+	cmdr.OnNotFound(func(ctx *tgapi.Context) error {
+		return ctx.SendString(fmt.Sprintf("комманда %v не найдена", ctx.Update.Message.Command()))
+	})
 
-	a.router.Use(logger.New(a.logger)).Use(clearcontext.New())
+	ctxr := contextrouter.New(dialogContextProvider)
+	ctxr.OnNotFound(func(ctx *tgapi.Context) error {
+		return ctx.SendString("сообщения вне контекста не обрабатываются")
+	})
 
-	a.router.On("start", func(ctx *tgrouter.Context) error {
+	a.api.OnCommand(cmdr.ToHandler())
+	a.api.OnText(ctxr.ToHandler())
+
+	a.api.Use(logger.New(a.logger, dialogContextProvider))
+	a.api.Use(dialogContextProvider.Middleware())
+
+	cmdr.Handle("start", func(ctx *tgapi.Context) error {
 		return ctx.SendString("starting")
 	})
-	a.router.On("reverse", func(ctx *tgrouter.Context) error {
-		texthandler.SetDialogContext(ctx, "reverse")
+
+	cmdr.Handle("reverse", func(ctx *tgapi.Context) error {
+		dialogContextProvider.SetDialogContext(ctx, "reverse")
 		return nil
 	})
-	a.router.On("menu", func(ctx *tgrouter.Context) error {
-		keyboard, ok := a.view.GetImage("menu")
-		if !ok {
-			return ErrInternal
-		}
-		return ctx.SetKeyboard(keyboard, "opening menu")
+
+	cmdr.Handle("menu", func(ctx *tgapi.Context) error {
+		return ctx.SetKeyboard(keyboards.Menu, "opening menu")
 	})
-	a.router.On("another", func(ctx *tgrouter.Context) error {
-		keyboard, ok := a.view.GetImage("another")
-		if !ok {
-			return ErrInternal
-		}
-		return ctx.SetKeyboard(keyboard, "opening another")
+
+	cmdr.Handle("another", func(ctx *tgapi.Context) error {
+		return ctx.SetKeyboard(keyboards.Another, "opening another")
 	})
-	a.router.On("close", func(ctx *tgrouter.Context) error {
+
+	cmdr.Handle("close", func(ctx *tgapi.Context) error {
 		return ctx.CloseKeyboard("closing")
 	})
 
-	a.textHandler.OnContext("reverse", func(ctx *tgrouter.Context) error {
-		// texthandler.SetDialogContext(ctx, "")
+	ctxr.Handle("reverse", func(ctx *tgapi.Context) error {
 		text := ctx.Update.Message.Text
 
 		reverse := func(s string) string {
@@ -73,25 +84,16 @@ func (a *App) Run(ctx context.Context, token string) error {
 		return ctx.SendString(reverse(text))
 
 	})
-
-	return a.router.Run(ctx, token)
 }
 
-func (a *App) Close() {
-	a.router.Close()
+func (a *App) Run(ctx context.Context, token string) error {
+	a.logger.Info("starting")
+
+	a.handleAll()
+	a.api.Run(ctx, token)
+	return nil
 }
 
-func New(l *slog.Logger) *App {
-	texthandler := texthandler.New(&texthandler.Config{
-		OnUnknownContext: func(ctx *tgrouter.Context) error {
-			return ctx.SendString("non-context messages are not handling")
-		},
-	})
-	router := tgrouter.NewRouter(&tgrouter.Config{
-		OnText:  texthandler.ToHandler(),
-		Workers: 5,
-	})
-	view := view.New()
-
-	return &App{logger: l, router: router, textHandler: texthandler, view: view}
+func New(rdb *redis.Client, logger *slog.Logger) *App {
+	return &App{logger: logger, rdb: rdb, api: tgapi.NewApi()}
 }
