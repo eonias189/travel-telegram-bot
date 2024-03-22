@@ -38,22 +38,11 @@ func (c *Context) SendWithInlineKeyboard(text string, keyboard tgbotapi.InlineKe
 	return err
 }
 
-func (c *Context) SetKeyboard(keyboard tgbotapi.ReplyKeyboardMarkup, text string) error {
-	msg := tgbotapi.NewMessage(c.Update.SentFrom().ID, text)
-	msg.ReplyMarkup = keyboard
-	_, err := c.Bot.Send(msg)
-	return err
-}
-
-func (c *Context) CloseKeyboard(text string) error {
-	msg := tgbotapi.NewMessage(c.Update.SentFrom().ID, text)
-	msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
-	_, err := c.Bot.Send(msg)
-	return err
-}
-
 func (c *Context) CallbackArg() string {
 	data := c.Update.CallbackData()
-	split_data := strings.Split(data, "/")
-	return split_data[1]
+	splitData := strings.Split(data, "/")
+	if len(splitData) != 2 {
+		return ""
+	}
+	return splitData[1]
 }

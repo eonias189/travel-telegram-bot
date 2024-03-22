@@ -8,9 +8,9 @@ import (
 	"time"
 
 	dialogcontext "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/dialogContext"
-	"github.com/Central-University-IT-prod/backend-eonias189/internal/lib/keyboards"
 	clearcontext "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/middlewares/clearContext"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/lib/middlewares/logger"
+	msgtempl "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/msgtemplates"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/router"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/service"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/tgapi"
@@ -30,6 +30,7 @@ type App struct {
 func (a *App) handleAll() {
 	cash := service.NewRedisCash(a.rdb.Conn(), time.Hour)
 	dialogContextProvider := dialogcontext.NewProvider(cash)
+	userService := service.NewUserServive(a.rdb.Conn())
 
 	cmdr := router.NewCommandRouter()
 	cmdr.Use(clearcontext.NewBeforeCleaner(dialogContextProvider))
@@ -53,40 +54,22 @@ func (a *App) handleAll() {
 	a.api.Use(dialogContextProvider.Middleware())
 
 	cmdr.Handle("start", func(ctx *tgapi.Context) error {
-		return ctx.SendString("starting")
-	})
-
-	cmdr.Handle("reverse", func(ctx *tgapi.Context) error {
-		dialogContextProvider.SetDialogContext(ctx, "reverse")
-		return nil
+		return ctx.SendWithInlineKeyboard("открытие меню", msgtempl.MenuButtons())
 	})
 
 	cmdr.Handle("menu", func(ctx *tgapi.Context) error {
-		return ctx.SendWithInlineKeyboard("opening menu", keyboards.Menu)
+		return ctx.SendWithInlineKeyboard("открытие меню", msgtempl.MenuButtons())
 	})
 
-	cbr.Handle("print", func(ctx *tgapi.Context) error {
-		arg := ctx.CallbackArg()
-		return ctx.SendString(arg)
+	cbr.Handle("menu", func(ctx *tgapi.Context) error {
+		return ctx.SendWithInlineKeyboard("меню", msgtempl.MenuButtons())
 	})
 
-	cmdr.Handle("close", func(ctx *tgapi.Context) error {
-		return ctx.CloseKeyboard("closing")
-	})
+	handleProfile(ctxr, cbr, userService, dialogContextProvider)
 
-	ctxr.Handle("reverse", func(ctx *tgapi.Context) error {
-		text := ctx.Update.Message.Text
-
-		reverse := func(s string) string {
-			var res string
-			for i := len(s) - 1; i >= 0; i-- {
-				res += string(s[i])
-			}
-			return res
-		}
-
-		return ctx.SendString(reverse(text))
-
+	cbr.Handle("trips", func(ctx *tgapi.Context) error {
+		a.logger.Info(ctx.Update.CallbackData(), slog.String("callback_arg", ctx.CallbackArg()))
+		return ctx.SendString("your trips")
 	})
 }
 

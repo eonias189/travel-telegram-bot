@@ -14,14 +14,14 @@ func NewCallbackRouter() *Router {
 		onNotFound: func(ctx *tgapi.Context) error { return nil },
 		getRoute: func(ctx *tgapi.Context) (string, bool) {
 			data := ctx.Update.CallbackData()
-			split_route := strings.Split(data, "/")
-			if len(split_route) == 0 {
+			splitRoute := strings.Split(data, "/")
+			if len(splitRoute) == 0 {
 				return "", false
 			}
-			if len(split_route) > 2 {
+			if len(splitRoute) > 2 {
 				return "", false
 			}
-			return split_route[0], true
+			return splitRoute[0], true
 		},
 	}
 }
