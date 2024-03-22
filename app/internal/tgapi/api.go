@@ -10,9 +10,10 @@ type HandlerFunc func(ctx *Context) error
 
 type Api struct {
 	MiddlewareMixin
-	onError   func(error)
-	onCommand HandlerFunc
-	onText    HandlerFunc
+	onError    func(error)
+	onCommand  HandlerFunc
+	onCallback HandlerFunc
+	onText     HandlerFunc
 }
 
 func (a *Api) OnError(handler func(error)) {
@@ -24,6 +25,12 @@ func (a *Api) OnError(handler func(error)) {
 func (a *Api) OnCommand(handler HandlerFunc) {
 	if handler != nil {
 		a.onCommand = handler
+	}
+}
+
+func (a *Api) OnCallback(handler HandlerFunc) {
+	if handler != nil {
+		a.onCallback = handler
 	}
 }
 
@@ -51,19 +58,18 @@ func (a *Api) Run(ctx context.Context, token string) error {
 
 		case update := <-updatesCh:
 
-			if update.Message == nil {
-				continue
-			}
-
 			c := &Context{
 				Update: update,
 				Bot:    bot,
 				ctx:    context.Background(),
 			}
-
 			var err error
 
-			if update.Message.IsCommand() {
+			if cbData := update.CallbackData(); cbData != "" {
+				err = a.WithMiddlewares(a.onCallback)(c)
+			} else if update.Message == nil {
+				return nil
+			} else if update.Message.IsCommand() {
 				err = a.WithMiddlewares(a.onCommand)(c)
 			} else {
 				err = a.WithMiddlewares(a.onText)(c)
@@ -78,8 +84,9 @@ func (a *Api) Run(ctx context.Context, token string) error {
 
 func NewApi() *Api {
 	return &Api{
-		onError:   func(err error) {},
-		onCommand: func(ctx *Context) error { return nil },
-		onText:    func(ctx *Context) error { return nil },
+		onError:    func(err error) {},
+		onCommand:  func(ctx *Context) error { return nil },
+		onCallback: func(ctx *Context) error { return nil },
+		onText:     func(ctx *Context) error { return nil },
 	}
 }

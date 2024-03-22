@@ -2,6 +2,7 @@ package tgapi
 
 import (
 	"context"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -25,21 +26,34 @@ func (c *Context) WithCtx(ctx context.Context) *Context {
 }
 
 func (c *Context) SendString(s string) error {
-	msg := tgbotapi.NewMessage(c.Update.Message.Chat.ID, s)
+	msg := tgbotapi.NewMessage(c.Update.SentFrom().ID, s)
+	_, err := c.Bot.Send(msg)
+	return err
+}
+
+func (c *Context) SendWithInlineKeyboard(text string, keyboard tgbotapi.InlineKeyboardMarkup) error {
+	msg := tgbotapi.NewMessage(c.Update.SentFrom().ID, text)
+	msg.ReplyMarkup = keyboard
 	_, err := c.Bot.Send(msg)
 	return err
 }
 
 func (c *Context) SetKeyboard(keyboard tgbotapi.ReplyKeyboardMarkup, text string) error {
-	msg := tgbotapi.NewMessage(c.Update.Message.Chat.ID, text)
+	msg := tgbotapi.NewMessage(c.Update.SentFrom().ID, text)
 	msg.ReplyMarkup = keyboard
 	_, err := c.Bot.Send(msg)
 	return err
 }
 
 func (c *Context) CloseKeyboard(text string) error {
-	msg := tgbotapi.NewMessage(c.Update.Message.Chat.ID, text)
+	msg := tgbotapi.NewMessage(c.Update.SentFrom().ID, text)
 	msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
 	_, err := c.Bot.Send(msg)
 	return err
+}
+
+func (c *Context) CallbackArg() string {
+	data := c.Update.CallbackData()
+	split_data := strings.Split(data, "/")
+	return split_data[1]
 }

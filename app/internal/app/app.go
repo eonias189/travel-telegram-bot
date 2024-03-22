@@ -7,12 +7,11 @@ import (
 	"log/slog"
 	"time"
 
-	commandrouter "github.com/Central-University-IT-prod/backend-eonias189/internal/commandRouter"
-	contextrouter "github.com/Central-University-IT-prod/backend-eonias189/internal/contextRouter"
 	dialogcontext "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/dialogContext"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/lib/keyboards"
 	clearcontext "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/middlewares/clearContext"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/lib/middlewares/logger"
+	"github.com/Central-University-IT-prod/backend-eonias189/internal/router"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/service"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/tgapi"
 	"github.com/redis/go-redis/v9"
@@ -32,18 +31,22 @@ func (a *App) handleAll() {
 	cash := service.NewRedisCash(a.rdb.Conn(), time.Hour)
 	dialogContextProvider := dialogcontext.NewProvider(cash)
 
-	cmdr := commandrouter.New()
+	cmdr := router.NewCommandRouter()
 	cmdr.Use(clearcontext.NewBeforeCleaner(dialogContextProvider))
 	cmdr.OnNotFound(func(ctx *tgapi.Context) error {
 		return ctx.SendString(fmt.Sprintf("комманда %v не найдена", ctx.Update.Message.Command()))
 	})
 
-	ctxr := contextrouter.New(dialogContextProvider)
+	ctxr := router.NewContextRouter(dialogContextProvider)
 	ctxr.OnNotFound(func(ctx *tgapi.Context) error {
 		return ctx.SendString("сообщения вне контекста не обрабатываются")
 	})
 
+	cbr := router.NewCallbackRouter()
+	cbr.Use(clearcontext.NewBeforeCleaner(dialogContextProvider))
+
 	a.api.OnCommand(cmdr.ToHandler())
+	a.api.OnCallback(cbr.ToHandler())
 	a.api.OnText(ctxr.ToHandler())
 
 	a.api.Use(logger.New(a.logger, dialogContextProvider))
@@ -59,11 +62,12 @@ func (a *App) handleAll() {
 	})
 
 	cmdr.Handle("menu", func(ctx *tgapi.Context) error {
-		return ctx.SetKeyboard(keyboards.Menu, "opening menu")
+		return ctx.SendWithInlineKeyboard("opening menu", keyboards.Menu)
 	})
 
-	cmdr.Handle("another", func(ctx *tgapi.Context) error {
-		return ctx.SetKeyboard(keyboards.Another, "opening another")
+	cbr.Handle("print", func(ctx *tgapi.Context) error {
+		arg := ctx.CallbackArg()
+		return ctx.SendString(arg)
 	})
 
 	cmdr.Handle("close", func(ctx *tgapi.Context) error {
