@@ -14,22 +14,22 @@ import (
 )
 
 func main() {
-	cfg, err := config.Get()
+	ctx, cancel := context.WithCancel(context.Background())
 
+	cfg, err := config.Get()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	logger := applogger.New(cfg.Env)
 
-	rdb, err := service.Connect(cfg.RedisAddr, cfg.RedisUser, cfg.RedisPassword, cfg.RedisDB)
+	rdb, err := service.Connect(ctx, cfg.RedisAddr, cfg.RedisUser, cfg.RedisPassword, cfg.RedisDB)
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(0)
 	}
 
 	app := app.New(rdb, logger)
-	ctx, cancel := context.WithCancel(context.Background())
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)

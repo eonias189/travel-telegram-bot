@@ -2,11 +2,16 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
 
-func Connect(address, user, password string, db int) (*redis.Client, error) {
+var (
+	saveInterval = time.Second * 5
+)
+
+func Connect(ctx context.Context, address, user, password string, db int) (*redis.Client, error) {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     address,
 		Username: user,
@@ -23,6 +28,18 @@ func Connect(address, user, password string, db int) (*redis.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				rdb.Save(context.TODO())
+				time.Sleep(saveInterval)
+			}
+		}
+	}()
 
 	return rdb, nil
 }
