@@ -15,6 +15,6 @@ type UserService struct {
 	JsonMixin[User]
 }
 
-func NewUserServive(conn *redis.Conn) *UserService {
-	return &UserService{JsonMixin: JsonMixin[User]{conn: conn, prefix: "users:"}}
+func NewUserServive(cli *redis.Client) *UserService {
+	return &UserService{JsonMixin: JsonMixin[User]{cli: cli, prefix: "users"}}
 }

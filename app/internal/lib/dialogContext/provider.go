@@ -3,6 +3,8 @@ package dialogcontext
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strings"
 
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/tgapi"
 )
@@ -34,6 +36,22 @@ func (d *DialogContextProvider) Middleware() tgapi.Middleware {
 func (d *DialogContextProvider) GetDialogContext(ctx *tgapi.Context) string {
 	dialogCtx, _ := ctx.Ctx().Value(ctxKey).(string)
 	return dialogCtx
+}
+
+func (d *DialogContextProvider) GetDialogContextQuery(ctx *tgapi.Context) url.Values {
+	dctx, _ := ctx.Ctx().Value(ctxKey).(string)
+	splitDCTX := strings.Split(dctx, "?")
+
+	if len(splitDCTX) != 2 {
+		return url.Values{}
+	}
+
+	query, err := url.ParseQuery(splitDCTX[1])
+	if err != nil {
+		return url.Values{}
+	}
+
+	return query
 }
 
 func (d *DialogContextProvider) SetDialogContext(ctx *tgapi.Context, dialogContext string) {

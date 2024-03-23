@@ -2,6 +2,7 @@ package tgapi
 
 import (
 	"context"
+	"net/url"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -47,11 +48,16 @@ func (c *Context) SendWithInlineKeyboard(text string, keyboard tgbotapi.InlineKe
 	return err
 }
 
-func (c *Context) CallbackArg() string {
+func (c *Context) CallbackQuery() url.Values {
 	data := c.Update.CallbackData()
-	splitData := strings.Split(data, "/")
+	splitData := strings.Split(data, "?")
 	if len(splitData) != 2 {
-		return ""
+		return url.Values{}
 	}
-	return splitData[1]
+
+	query, err := url.ParseQuery(splitData[1])
+	if err != nil {
+		return url.Values{}
+	}
+	return query
 }

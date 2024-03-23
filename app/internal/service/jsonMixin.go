@@ -10,7 +10,7 @@ import (
 
 type JsonMixin[T any] struct {
 	prefix string
-	conn   *redis.Conn
+	cli    *redis.Client
 }
 
 func (jm JsonMixin[T]) getKey(key int64) string {
@@ -20,7 +20,7 @@ func (jm JsonMixin[T]) getKey(key int64) string {
 func (jm *JsonMixin[T]) Get(key int64) (T, error) {
 	var res T
 
-	resp := jm.conn.JSONGet(context.TODO(), jm.getKey(key))
+	resp := jm.cli.JSONGet(context.TODO(), jm.getKey(key))
 	if err := resp.Err(); err != nil {
 		return res, err
 	}
@@ -39,5 +39,23 @@ func (jm *JsonMixin[T]) Get(key int64) (T, error) {
 }
 
 func (jm *JsonMixin[T]) Set(key int64, item T) error {
-	return jm.conn.JSONSet(context.TODO(), jm.getKey(key), "$", item).Err()
+	return jm.cli.JSONSet(context.TODO(), jm.getKey(key), "$", item).Err()
+}
+
+func (jm *JsonMixin[T]) Exists(key int64) bool {
+	resp := jm.cli.Exists(context.TODO(), jm.getKey(key))
+	if resp.Err() != nil {
+		return false
+	}
+
+	res, err := resp.Uint64()
+	if err != nil {
+		return false
+	}
+
+	return res > 0
+}
+
+func (jm *JsonMixin[T]) Delete(key int64) error {
+	return jm.cli.JSONDel(context.TODO(), jm.getKey(key), "$").Err()
 }

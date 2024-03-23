@@ -14,7 +14,7 @@ func NewCallbackRouter() *Router {
 		onNotFound: func(ctx *tgapi.Context) error { return nil },
 		getRoute: func(ctx *tgapi.Context) (string, bool) {
 			data := ctx.Update.CallbackData()
-			splitRoute := strings.Split(data, "/")
+			splitRoute := strings.Split(data, "?")
 			if len(splitRoute) == 0 {
 				return "", false
 			}

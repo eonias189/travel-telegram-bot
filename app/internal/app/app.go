@@ -27,17 +27,15 @@ type App struct {
 	rdb    *redis.Client
 }
 
-type AppHandlerOptions struct {
-	CommandRouter  *router.Router
-	ContextRouter  *router.Router
-	CallbackRouter *router.Router
-	Dcs            DialogContextSetter
+func NewId() int64 {
+	return time.Now().UnixNano()
 }
 
 func (a *App) handleAll() {
 	cash := service.NewRedisCash(a.rdb.Conn(), service.CashOptions{Prefix: "dialog-context", ExpirationTime: time.Hour})
 	dialogContextProvider := dialogcontext.NewProvider(cash)
-	userService := service.NewUserServive(a.rdb.Conn())
+	userService := service.NewUserServive(a.rdb)
+	tripService := service.NewTripService(a.rdb)
 
 	cmdr := router.NewCommandRouter()
 	cmdr.Use(clearcontext.NewBeforeCleaner(dialogContextProvider))
@@ -53,11 +51,21 @@ func (a *App) handleAll() {
 	cbr := router.NewCallbackRouter()
 	cbr.Use(clearcontext.NewBeforeCleaner(dialogContextProvider))
 
-	handlerOptions := AppHandlerOptions{CommandRouter: cmdr, ContextRouter: ctxr, CallbackRouter: cbr, Dcs: dialogContextProvider}
+	handlerOptions := AppHandlerOptions{
+		CommandRouter:  cmdr,
+		ContextRouter:  ctxr,
+		CallbackRouter: cbr,
+		Dcs:            dialogContextProvider,
+		Dcqp:           dialogContextProvider,
+		Logger:         a.logger,
+	}
 
 	a.api.OnCommand(cmdr.ToHandler())
 	a.api.OnCallback(cbr.ToHandler())
 	a.api.OnText(ctxr.ToHandler())
+	a.api.OnError(func(err error) {
+		a.logger.Error(err.Error())
+	})
 
 	a.api.Use(logger.New(a.logger, dialogContextProvider))
 	a.api.Use(dialogContextProvider.Middleware())
@@ -75,11 +83,7 @@ func (a *App) handleAll() {
 	})
 
 	handleProfile(handlerOptions, userService)
-
-	cbr.Handle("trips", func(ctx *tgapi.Context) error {
-		a.logger.Info(ctx.Update.CallbackData(), slog.String("callback_arg", ctx.CallbackArg()))
-		return ctx.SendString("your trips")
-	})
+	handleTrips(handlerOptions, userService, tripService)
 }
 
 func (a *App) Run(ctx context.Context, token string) error {
