@@ -28,7 +28,7 @@ type App struct {
 }
 
 func (a *App) handleAll() {
-	cash := service.NewRedisCash(a.rdb.Conn(), time.Hour)
+	cash := service.NewRedisCash(a.rdb.Conn(), service.CashOptions{Prefix: "dialog-context", ExpirationTime: time.Hour})
 	dialogContextProvider := dialogcontext.NewProvider(cash)
 	userService := service.NewUserServive(a.rdb.Conn())
 

@@ -24,11 +24,6 @@ func Connect(ctx context.Context, address, user, password string, db int) (*redi
 		return nil, err
 	}
 
-	err = initAll(rdb)
-	if err != nil {
-		return nil, err
-	}
-
 	go func() {
 		for {
 			select {
@@ -42,13 +37,4 @@ func Connect(ctx context.Context, address, user, password string, db int) (*redi
 	}()
 
 	return rdb, nil
-}
-
-func initAll(rdb *redis.Client) error {
-	err := initUsers(rdb)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
