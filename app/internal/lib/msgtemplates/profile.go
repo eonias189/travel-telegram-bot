@@ -11,17 +11,15 @@ func ProfileMessage(name string, user service.User) string {
 	return fmt.Sprintf(`Профиль:
 Пользователь: %v
 Возраст: %v
-Страна: %v
-Город: %v
-bio: %v`, name, user.Age, user.Country, user.City, user.Bio)
+Местоположение: %v
+bio: %v`, name, user.Age, user.Location, user.Bio)
 }
 
 func ProfileButtons() tgbotapi.InlineKeyboardMarkup {
 	return tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("назад", "menu")),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("изменить возраст", "change-age")),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("изменить город", "change-city")),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("изменить страну", "change-country")),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("изменить местоположение", "change-location")),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("изменить bio", "change-bio")),
 	)
 }

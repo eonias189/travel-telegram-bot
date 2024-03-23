@@ -2,8 +2,10 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 
+	"github.com/Central-University-IT-prod/backend-eonias189/internal/geoapi"
 	msgtempl "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/msgtemplates"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/router"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/service"
@@ -60,45 +62,25 @@ func handleProfile(contextrouter *router.Router, callbackRouter *router.Router, 
 		return ctx.SendWithInlineKeyboard(msgtempl.ProfileMessage(sender.UserName, user), msgtempl.ProfileButtons())
 	})
 
-	callbackRouter.Handle("change-city", func(ctx *tgapi.Context) error {
-		dcs.SetDialogContext(ctx, "change-city")
-		return ctx.SendString("введи новый город")
+	callbackRouter.Handle("change-location", func(ctx *tgapi.Context) error {
+		dcs.SetDialogContext(ctx, "change-location")
+		return ctx.SendString("введи новое местоположение")
 	})
 
-	contextrouter.Handle("change-city", func(ctx *tgapi.Context) error {
+	contextrouter.Handle("change-location", func(ctx *tgapi.Context) error {
 		sender := ctx.Update.SentFrom()
 
-		newCity := ctx.Update.Message.Text
+		newLocation := ctx.Update.Message.Text
 		user, err := userService.Get(sender.ID)
 		if err != nil && !errors.Is(err, service.ErrNotFound) {
 			return err
 		}
 
-		user.City = newCity
-		err = userService.Set(sender.ID, user)
-		if err != nil {
-			return err
+		if !geoapi.CheckLocation(newLocation) {
+			return ctx.SendString(fmt.Sprintf("%v: не найдено", newLocation))
 		}
 
-		dcs.SetDialogContext(ctx, "")
-		return ctx.SendWithInlineKeyboard(msgtempl.ProfileMessage(sender.UserName, user), msgtempl.ProfileButtons())
-	})
-
-	callbackRouter.Handle("change-country", func(ctx *tgapi.Context) error {
-		dcs.SetDialogContext(ctx, "change-country")
-		return ctx.SendString("введи новую страну")
-	})
-
-	contextrouter.Handle("change-country", func(ctx *tgapi.Context) error {
-		sender := ctx.Update.SentFrom()
-
-		newCountry := ctx.Update.Message.Text
-		user, err := userService.Get(sender.ID)
-		if err != nil && !errors.Is(err, service.ErrNotFound) {
-			return err
-		}
-
-		user.Country = newCountry
+		user.Location = newLocation
 		err = userService.Set(sender.ID, user)
 		if err != nil {
 			return err

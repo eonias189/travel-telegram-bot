@@ -9,10 +9,9 @@ import (
 )
 
 type User struct {
-	Age     int    `json:"age"`
-	City    string `json:"city"`
-	Country string `json:"country"`
-	Bio     string `json:"bio"`
+	Age      int    `json:"age"`
+	Location string `json:"location"`
+	Bio      string `json:"bio"`
 }
 
 func initUsers(rdb *redis.Client) error {
@@ -22,8 +21,7 @@ func initUsers(rdb *redis.Client) error {
 	PREFIX 1 users:
 	SCHEMA
 		$.age as age NUMERIC
-		$.city as city TEXT
-		$.country as country TEXT
+		$.location as location TEXT
 		$.bio as bio TEXT
 	`
 
