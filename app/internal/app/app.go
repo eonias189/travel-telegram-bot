@@ -27,6 +27,13 @@ type App struct {
 	rdb    *redis.Client
 }
 
+type AppHandlerOptions struct {
+	CommandRouter  *router.Router
+	ContextRouter  *router.Router
+	CallbackRouter *router.Router
+	Dcs            DialogContextSetter
+}
+
 func (a *App) handleAll() {
 	cash := service.NewRedisCash(a.rdb.Conn(), service.CashOptions{Prefix: "dialog-context", ExpirationTime: time.Hour})
 	dialogContextProvider := dialogcontext.NewProvider(cash)
@@ -46,6 +53,8 @@ func (a *App) handleAll() {
 	cbr := router.NewCallbackRouter()
 	cbr.Use(clearcontext.NewBeforeCleaner(dialogContextProvider))
 
+	handlerOptions := AppHandlerOptions{CommandRouter: cmdr, ContextRouter: ctxr, CallbackRouter: cbr, Dcs: dialogContextProvider}
+
 	a.api.OnCommand(cmdr.ToHandler())
 	a.api.OnCallback(cbr.ToHandler())
 	a.api.OnText(ctxr.ToHandler())
@@ -54,18 +63,18 @@ func (a *App) handleAll() {
 	a.api.Use(dialogContextProvider.Middleware())
 
 	cmdr.Handle("start", func(ctx *tgapi.Context) error {
-		return ctx.SendWithInlineKeyboard("открытие меню", msgtempl.MenuButtons())
+		return ctx.SendMessage(msgtempl.MenuMsg(ctx.SenderID()))
 	})
 
 	cmdr.Handle("menu", func(ctx *tgapi.Context) error {
-		return ctx.SendWithInlineKeyboard("открытие меню", msgtempl.MenuButtons())
+		return ctx.SendMessage(msgtempl.MenuMsg(ctx.SenderID()))
 	})
 
 	cbr.Handle("menu", func(ctx *tgapi.Context) error {
-		return ctx.SendWithInlineKeyboard("меню", msgtempl.MenuButtons())
+		return ctx.SendMessage(msgtempl.MenuMsg(ctx.SenderID()))
 	})
 
-	handleProfile(ctxr, cbr, userService, dialogContextProvider)
+	handleProfile(handlerOptions, userService)
 
 	cbr.Handle("trips", func(ctx *tgapi.Context) error {
 		a.logger.Info(ctx.Update.CallbackData(), slog.String("callback_arg", ctx.CallbackArg()))

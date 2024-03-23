@@ -7,22 +7,12 @@ import (
 
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/geoapi"
 	msgtempl "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/msgtemplates"
-	"github.com/Central-University-IT-prod/backend-eonias189/internal/router"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/service"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/tgapi"
 )
 
-type UserService interface {
-	Get(id int64) (service.User, error)
-	Set(id int64, user service.User) error
-}
-
-type DialogContextSetter interface {
-	SetDialogContext(ctx *tgapi.Context, dialogContext string)
-}
-
-func handleProfile(contextrouter *router.Router, callbackRouter *router.Router, userService UserService, dcs DialogContextSetter) {
-	callbackRouter.Handle("profile", func(ctx *tgapi.Context) error {
+func handleProfile(opts AppHandlerOptions, userService UserService) {
+	opts.CallbackRouter.Handle("profile", func(ctx *tgapi.Context) error {
 
 		sender := ctx.Update.SentFrom()
 		user, err := userService.Get(sender.ID)
@@ -30,16 +20,15 @@ func handleProfile(contextrouter *router.Router, callbackRouter *router.Router, 
 			return err
 		}
 
-		msgtext := msgtempl.ProfileMessage(sender.UserName, user)
-		return ctx.SendWithInlineKeyboard(msgtext, msgtempl.ProfileButtons())
+		return ctx.SendMessage(msgtempl.ProfileMsg(sender.ID, sender.UserName, user))
 	})
 
-	callbackRouter.Handle("change-age", func(ctx *tgapi.Context) error {
-		dcs.SetDialogContext(ctx, "change-age")
+	opts.CallbackRouter.Handle("change-age", func(ctx *tgapi.Context) error {
+		opts.Dcs.SetDialogContext(ctx, "change-age")
 		return ctx.SendString("введи новый возраст")
 	})
 
-	contextrouter.Handle("change-age", func(ctx *tgapi.Context) error {
+	opts.ContextRouter.Handle("change-age", func(ctx *tgapi.Context) error {
 		newAge := ctx.Update.Message.Text
 		newAgetInt, err := strconv.Atoi(newAge)
 		if err != nil {
@@ -58,16 +47,16 @@ func handleProfile(contextrouter *router.Router, callbackRouter *router.Router, 
 			return err
 		}
 
-		dcs.SetDialogContext(ctx, "")
-		return ctx.SendWithInlineKeyboard(msgtempl.ProfileMessage(sender.UserName, user), msgtempl.ProfileButtons())
+		opts.Dcs.SetDialogContext(ctx, "")
+		return ctx.SendMessage(msgtempl.ProfileMsg(sender.ID, sender.UserName, user))
 	})
 
-	callbackRouter.Handle("change-location", func(ctx *tgapi.Context) error {
-		dcs.SetDialogContext(ctx, "change-location")
+	opts.CallbackRouter.Handle("change-location", func(ctx *tgapi.Context) error {
+		opts.Dcs.SetDialogContext(ctx, "change-location")
 		return ctx.SendString("введи новое местоположение")
 	})
 
-	contextrouter.Handle("change-location", func(ctx *tgapi.Context) error {
+	opts.ContextRouter.Handle("change-location", func(ctx *tgapi.Context) error {
 		sender := ctx.Update.SentFrom()
 
 		newLocation := ctx.Update.Message.Text
@@ -86,16 +75,16 @@ func handleProfile(contextrouter *router.Router, callbackRouter *router.Router, 
 			return err
 		}
 
-		dcs.SetDialogContext(ctx, "")
-		return ctx.SendWithInlineKeyboard(msgtempl.ProfileMessage(sender.UserName, user), msgtempl.ProfileButtons())
+		opts.Dcs.SetDialogContext(ctx, "")
+		return ctx.SendMessage(msgtempl.ProfileMsg(sender.ID, sender.UserName, user))
 	})
 
-	callbackRouter.Handle("change-bio", func(ctx *tgapi.Context) error {
-		dcs.SetDialogContext(ctx, "change-bio")
+	opts.CallbackRouter.Handle("change-bio", func(ctx *tgapi.Context) error {
+		opts.Dcs.SetDialogContext(ctx, "change-bio")
 		return ctx.SendString("введи новое bio")
 	})
 
-	contextrouter.Handle("change-bio", func(ctx *tgapi.Context) error {
+	opts.ContextRouter.Handle("change-bio", func(ctx *tgapi.Context) error {
 		sender := ctx.Update.SentFrom()
 
 		newBio := ctx.Update.Message.Text
@@ -110,7 +99,7 @@ func handleProfile(contextrouter *router.Router, callbackRouter *router.Router, 
 			return err
 		}
 
-		dcs.SetDialogContext(ctx, "")
-		return ctx.SendWithInlineKeyboard(msgtempl.ProfileMessage(sender.UserName, user), msgtempl.ProfileButtons())
+		opts.Dcs.SetDialogContext(ctx, "")
+		return ctx.SendMessage(msgtempl.ProfileMsg(sender.ID, sender.UserName, user))
 	})
 }

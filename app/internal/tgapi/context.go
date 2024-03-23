@@ -25,6 +25,15 @@ func (c *Context) WithCtx(ctx context.Context) *Context {
 	}
 }
 
+func (c *Context) SenderID() int64 {
+	return c.Update.SentFrom().ID
+}
+
+func (c *Context) SendMessage(msg tgbotapi.MessageConfig) error {
+	_, err := c.Bot.Send(msg)
+	return err
+}
+
 func (c *Context) SendString(s string) error {
 	msg := tgbotapi.NewMessage(c.Update.SentFrom().ID, s)
 	_, err := c.Bot.Send(msg)
