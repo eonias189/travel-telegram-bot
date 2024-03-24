@@ -5,14 +5,18 @@ import (
 	"strconv"
 
 	msgtempl "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/msgtemplates"
-	"github.com/Central-University-IT-prod/backend-eonias189/internal/lib/utils"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/service"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/tgapi"
 )
 
 func handleTrips(opts AppHandlerOptions, userService UserService, tripService TripService) {
 
-	var renderTrips = func(user service.User, ctx *tgapi.Context) error {
+	var renderTrips = func(ctx *tgapi.Context) error {
+		user, err := userService.Get(ctx.SenderID())
+		if err != nil {
+			return err
+		}
+
 		trips, err := tripService.GetAll(user.Trips)
 		if err != nil {
 			return err
@@ -22,12 +26,7 @@ func handleTrips(opts AppHandlerOptions, userService UserService, tripService Tr
 	}
 
 	opts.CallbackRouter.Handle("trips", func(ctx *tgapi.Context) error {
-		user, err := userService.Get(ctx.SenderID())
-		if err != nil {
-			return err
-		}
-
-		return renderTrips(user, ctx)
+		return renderTrips(ctx)
 	})
 
 	opts.CallbackRouter.Handle("new-trip", func(ctx *tgapi.Context) error {
@@ -71,19 +70,13 @@ func handleTrips(opts AppHandlerOptions, userService UserService, tripService Tr
 			return err
 		}
 
-		user, err := userService.Get(ctx.SenderID())
-		if err != nil {
-			return err
-		}
-
-		user.Trips = append(user.Trips, trip.Id)
-		err = userService.Set(ctx.SenderID(), user)
+		err = userService.AddTrip(ctx.SenderID(), trip.Id)
 		if err != nil {
 			return err
 		}
 
 		opts.Dcs.SetDialogContext(ctx, "")
-		return renderTrips(user, ctx)
+		return renderTrips(ctx)
 
 	})
 
@@ -102,18 +95,12 @@ func handleTrips(opts AppHandlerOptions, userService UserService, tripService Tr
 			return err
 		}
 
-		user, err := userService.Get(ctx.SenderID())
+		err = userService.DeleteTrip(ctx.SenderID(), int64(id))
 		if err != nil {
 			return err
 		}
 
-		user.Trips = utils.Filter(user.Trips, func(i int64) bool { return i != int64(id) })
-		err = userService.Set(ctx.SenderID(), user)
-		if err != nil {
-			return err
-		}
-
-		return renderTrips(user, ctx)
+		return renderTrips(ctx)
 
 	})
 }

@@ -20,6 +20,8 @@ type DialogContextQueryProvider interface {
 type UserService interface {
 	Get(id int64) (service.User, error)
 	Set(id int64, user service.User) error
+	AddTrip(userId, tripId int64) error
+	DeleteTrip(userId, tripId int64) error
 }
 
 type TripService interface {
