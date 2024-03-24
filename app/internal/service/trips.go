@@ -67,3 +67,27 @@ func (ts *TripService) ExistsName(name string) bool {
 func NewTripService(cli *redis.Client) *TripService {
 	return &TripService{JsonMixin: JsonMixin[Trip]{cli: cli, prefix: "trips"}}
 }
+
+func (ts *TripService) AddMember(tripId, member int64) error {
+	key := ts.getKey(tripId)
+	was, _ := ts.cli.JSONGet(context.TODO(), key, "$.members").Result()
+	if was == "[null]" {
+		return ts.cli.JSONSet(context.TODO(), key, "$.members", []int64{member}).Err()
+	}
+	return ts.cli.JSONArrAppend(context.TODO(), key, "$.members", member).Err()
+}
+
+func (ts *TripService) DeleteMember(tripId, member int64) error {
+	key := ts.getKey(tripId)
+
+	membersToDelete, err := ts.cli.JSONArrIndex(context.TODO(), key, "$.trips", member).Result()
+	if err != nil {
+		return err
+	}
+
+	if len(membersToDelete) == 0 {
+		return ErrNotFound
+	}
+
+	return ts.cli.JSONArrPop(context.TODO(), key, "$.members", int(membersToDelete[0])).Err()
+}

@@ -83,10 +83,16 @@ func (a *App) handleAll() {
 		return ctx.SendMessage(msgtempl.MenuMsg(ctx.SenderID()))
 	})
 
+	cmdr.Handle("otmena", func(ctx *tgapi.Context) error {
+		dialogContextProvider.SetDialogContext(ctx, "")
+		return ctx.SendString("отмена контекста")
+	})
+
 	handleProfile(handlerOptions, userService)
 	handleTrips(handlerOptions, userService, tripService)
 	handleLocations(handlerOptions, locationService)
 	handleNotes(handlerOptions)
+	handleFriends(handlerOptions, userService, tripService)
 }
 
 func (a *App) Run(ctx context.Context, token string) error {

@@ -40,6 +40,8 @@ type TripService interface {
 	ExistsName(name string) bool
 	GetAll(ids []int64) ([]service.Trip, error)
 	Delete(id int64) error
+	AddMember(tripId, member int64) error
+	DeleteMember(tripId, member int64) error
 }
 
 type LocationService interface {

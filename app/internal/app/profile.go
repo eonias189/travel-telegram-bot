@@ -16,7 +16,15 @@ func handleProfile(opts AppHandlerOptions, userService UserService) {
 
 		sender := ctx.Update.SentFrom()
 		user, err := userService.Get(sender.ID)
-		if err != nil && !errors.Is(err, service.ErrNotFound) {
+		if errors.Is(err, service.ErrNotFound) {
+			return ctx.SendMessage(msgtempl.ProfileMsg(sender.ID, sender.UserName, service.User{
+				Age:      -1,
+				Location: "не указано",
+				Bio:      "не указано",
+			}))
+		}
+
+		if err != nil {
 			return err
 		}
 
@@ -81,7 +89,7 @@ func handleProfile(opts AppHandlerOptions, userService UserService) {
 
 	opts.CallbackRouter.Handle("change-bio", func(ctx *tgapi.Context) error {
 		opts.Dcs.SetDialogContext(ctx, "change-bio")
-		return ctx.SendString("введи новое bio")
+		return ctx.SendString(`введи новое "о себе"`)
 	})
 
 	opts.ContextRouter.Handle("change-bio", func(ctx *tgapi.Context) error {

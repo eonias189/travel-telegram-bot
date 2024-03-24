@@ -8,16 +8,23 @@ import (
 )
 
 func ProfileMsg(senderID int64, name string, user service.User) tgbotapi.MessageConfig {
+	var age string
+	if user.Age == -1 {
+		age = "не указано"
+	} else {
+		age = fmt.Sprint(user.Age)
+	}
+
 	text := fmt.Sprintf(`Профиль:
-Пользователь: %v
+Пользователь: @%v
 Возраст: %v
 Местоположение: %v
-bio: %v`, name, user.Age, user.Location, user.Bio)
+о себе: %v`, name, age, user.Location, user.Bio)
 	btns := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("назад", "menu")),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("изменить возраст", "change-age")),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("изменить местоположение", "change-location")),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("изменить bio", "change-bio")),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(`изменить "о себе"`, "change-bio")),
 	)
 
 	msg := tgbotapi.NewMessage(senderID, text)
