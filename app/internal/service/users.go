@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -19,6 +18,10 @@ type UserService struct {
 }
 
 func (us *UserService) AddTrip(userId, tripId int64) error {
+	was, _ := us.cli.JSONGet(context.TODO(), us.getKey(userId), "$.trips").Result()
+	if was == "[null]" {
+		return us.cli.JSONSet(context.TODO(), us.getKey(userId), "$.trips", []int64{tripId}).Err()
+	}
 	return us.cli.JSONArrAppend(context.TODO(), us.getKey(userId), "$.trips", tripId).Err()
 }
 
@@ -27,7 +30,6 @@ func (us *UserService) DeleteTrip(userId, tripId int64) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(tripsToDelete)
 
 	if len(tripsToDelete) == 0 {
 		return ErrNotFound

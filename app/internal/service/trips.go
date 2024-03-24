@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/redis/go-redis/v9"
@@ -15,16 +14,6 @@ type Trip struct {
 	Creator     int64      `json:"creator"`
 	Members     []int64    `json:"members"`
 	Locations   []Location `json:"locations"`
-}
-
-func (t Trip) MarshalBinary() ([]byte, error) {
-	return json.Marshal(t)
-}
-
-type Location struct {
-	Name      string `json:"name"`
-	StartTime int64  `json:"startTime"`
-	EndTime   int64  `json:"endTime"`
 }
 
 func initTrips(rdb *redis.Client) error {

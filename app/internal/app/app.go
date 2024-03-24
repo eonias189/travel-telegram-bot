@@ -36,6 +36,7 @@ func (a *App) handleAll() {
 	dialogContextProvider := dialogcontext.NewProvider(cash)
 	userService := service.NewUserServive(a.rdb)
 	tripService := service.NewTripService(a.rdb)
+	locationService := service.NewLocationService(a.rdb)
 
 	cmdr := router.NewCommandRouter()
 	cmdr.Use(clearcontext.NewBeforeCleaner(dialogContextProvider))
@@ -84,6 +85,8 @@ func (a *App) handleAll() {
 
 	handleProfile(handlerOptions, userService)
 	handleTrips(handlerOptions, userService, tripService)
+	handleLocations(handlerOptions, locationService)
+	handleNotes(handlerOptions)
 }
 
 func (a *App) Run(ctx context.Context, token string) error {

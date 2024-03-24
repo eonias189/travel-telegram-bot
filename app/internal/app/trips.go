@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -13,6 +14,11 @@ func handleTrips(opts AppHandlerOptions, userService UserService, tripService Tr
 
 	var renderTrips = func(ctx *tgapi.Context) error {
 		user, err := userService.Get(ctx.SenderID())
+
+		if errors.Is(err, service.ErrNotFound) {
+			return ctx.SendString(`укажите информацию о себе в профиле для использования функции "путешествия"`)
+		}
+
 		if err != nil {
 			return err
 		}
@@ -30,21 +36,21 @@ func handleTrips(opts AppHandlerOptions, userService UserService, tripService Tr
 	})
 
 	opts.CallbackRouter.Handle("new-trip", func(ctx *tgapi.Context) error {
-		opts.Dcs.SetDialogContext(ctx, "name-input")
+		opts.Dcs.SetDialogContext(ctx, "trip-name-input")
 		return ctx.SendString("введи название путешествия")
 	})
 
-	opts.ContextRouter.Handle("name-input", func(ctx *tgapi.Context) error {
+	opts.ContextRouter.Handle("trip-name-input", func(ctx *tgapi.Context) error {
 		name := ctx.Update.Message.Text
 		if tripService.ExistsName(name) {
 			return ctx.SendString("введённое имя путешествия уже занято")
 		}
 
-		opts.Dcs.SetDialogContext(ctx, fmt.Sprintf("description-input?name=%v", name))
+		opts.Dcs.SetDialogContext(ctx, fmt.Sprintf("trip-description-input?name=%v", name))
 		return ctx.SendString("введи описание путешествия")
 	})
 
-	opts.ContextRouter.Handle("description-input", func(ctx *tgapi.Context) error {
+	opts.ContextRouter.Handle("trip-description-input", func(ctx *tgapi.Context) error {
 		desc := ctx.Update.Message.Text
 		query := opts.Dcqp.GetDialogContextQuery(ctx)
 		name := query.Get("name")
@@ -63,6 +69,7 @@ func handleTrips(opts AppHandlerOptions, userService UserService, tripService Tr
 			Name:        name,
 			Description: desc,
 			Creator:     ctx.SenderID(),
+			Members:     []int64{ctx.SenderID()},
 		}
 
 		err := tripService.Set(id, trip)
@@ -84,23 +91,54 @@ func handleTrips(opts AppHandlerOptions, userService UserService, tripService Tr
 		query := ctx.CallbackQuery()
 		idStr := query.Get("id")
 
-		id, err := strconv.Atoi(idStr)
+		idInt, err := strconv.Atoi(idStr)
 		if err != nil {
 			return err
 		}
 
-		err = tripService.Delete(int64(id))
+		id := int64(idInt)
+
+		trip, err := tripService.Get(id)
+		if err != nil {
+			return err
+		}
+
+		err = tripService.Delete(id)
 		if err != nil {
 
 			return err
 		}
 
-		err = userService.DeleteTrip(ctx.SenderID(), int64(id))
-		if err != nil {
-			return err
+		for _, memberId := range trip.Members {
+			err = userService.DeleteTrip(memberId, id)
+			if err != nil {
+				opts.Logger.Error(err.Error())
+			}
 		}
 
 		return renderTrips(ctx)
+
+	})
+
+	opts.CallbackRouter.Handle("trip", func(ctx *tgapi.Context) error {
+		query := ctx.CallbackQuery()
+		idStr := query.Get("id")
+		if idStr == "" {
+			return ErrInternal
+		}
+
+		idInt, err := strconv.Atoi(idStr)
+		if err != nil {
+			return err
+		}
+
+		id := int64(idInt)
+		trip, err := tripService.Get(id)
+		if err != nil {
+			return err
+		}
+
+		return ctx.SendMessage(msgtempl.TripMessage(ctx.SenderID(), trip))
 
 	})
 }

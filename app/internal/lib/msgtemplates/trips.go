@@ -12,10 +12,7 @@ func TripsMessage(senderId int64, trips []service.Trip) tgbotapi.MessageConfig {
 
 	rows := make([][]tgbotapi.InlineKeyboardButton, len(trips)+2)
 	for i, trip := range trips {
-		rows[i+2] = tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(trip.Name, fmt.Sprintf("trip?id=%v", trip.Id)),
-			tgbotapi.NewInlineKeyboardButtonData("удалить", fmt.Sprintf("delete-trip?id=%v", trip.Id)),
-		)
+		rows[i+2] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(trip.Name, fmt.Sprintf("trip?id=%v", trip.Id)))
 	}
 
 	rows[0] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("назад", "menu"))
@@ -25,4 +22,20 @@ func TripsMessage(senderId int64, trips []service.Trip) tgbotapi.MessageConfig {
 	msg.ReplyMarkup = btns
 	return msg
 
+}
+
+func TripMessage(senderId int64, trip service.Trip) tgbotapi.MessageConfig {
+	text := fmt.Sprintf(`%v
+Описание: %v`, trip.Name, trip.Description)
+
+	btns := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("назад", "trips")),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("локации", fmt.Sprintf(`locations?tripId=%v`, trip.Id))),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("заметки", fmt.Sprintf(`notes?tripId=%v`, trip.Id))),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("удалить", fmt.Sprintf("delete-trip?id=%v", trip.Id))),
+	)
+
+	msg := tgbotapi.NewMessage(senderId, text)
+	msg.ReplyMarkup = btns
+	return msg
 }
