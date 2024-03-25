@@ -97,6 +97,7 @@ func (a *App) handleAll() {
 	handleLocations(handlerOptions, locationService)
 	handleNotes(handlerOptions)
 	handleFriends(handlerOptions, userService, tripService)
+	handleGeoTools(handlerOptions, locationService)
 }
 
 func (a *App) Run(ctx context.Context, token string) error {

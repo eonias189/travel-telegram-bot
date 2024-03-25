@@ -38,3 +38,11 @@ func GetInt64(query url.Values, key string) (int64, error) {
 	res, err := GetInt(query, key)
 	return int64(res), err
 }
+
+func Map[T any, R any](s []T, mod func(T) R) []R {
+	res := make([]R, len(s))
+	for i, item := range s {
+		res[i] = mod(item)
+	}
+	return res
+}

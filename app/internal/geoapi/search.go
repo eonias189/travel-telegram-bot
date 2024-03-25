@@ -40,3 +40,26 @@ func GetCoords(location string) (s2.LatLng, error) {
 
 	return s2.LatLngFromDegrees(res[0].Lat, res[0].Lng), nil
 }
+
+type Address struct {
+	Country string
+	City    string
+}
+
+func GetAddress(location string) (Address, error) {
+	n := nominatim.Nominatim{}
+	res, err := n.Search(nominatim.SearchParameters{
+		Query:          location,
+		IncludeAddress: true,
+	})
+
+	if err != nil {
+		return Address{}, err
+	}
+
+	if len(res) == 0 {
+		return Address{}, ErrNotFound
+	}
+	a := Address{Country: res[0].Address.Country, City: res[0].Address.City}
+	return a, nil
+}

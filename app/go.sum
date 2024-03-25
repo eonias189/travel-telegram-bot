@@ -22,6 +22,8 @@ github.com/joeshaw/gengen v0.0.0-20190604015154-c77d87825f5a/go.mod h1:v2qvRL8Xw
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/redis/go-redis/v9 v9.5.1 h1:H1X4D3yHPaYrkL5X06Wh6xNVM/pX0Ft4RV0vMGvLBh8=
 github.com/redis/go-redis/v9 v9.5.1/go.mod h1:hdY0cQFCN4fnSYT6TkisLufl/4W5UIXyv0b/CLO2V2M=
+github.com/serjvanilla/go-overpass v0.0.0-20220918094045-58606372f808 h1:0AObvHxEbYubS79jKxIvnHmjdgNpGXRWibS6omxz37A=
+github.com/serjvanilla/go-overpass v0.0.0-20220918094045-58606372f808/go.mod h1:W2WcJBoB8P+XjAtc6TrLPK9+HG67xkz84vw0ghbV0qU=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/tkrajina/gpxgo v1.1.2 h1:il6rjS6IGm3yqa/yr7+fKBlF3ufWDEPZrYi/kxI1Jv0=

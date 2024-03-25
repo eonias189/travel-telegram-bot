@@ -13,6 +13,7 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/geo v0.0.0-20210211234256-740aa86cb551 // indirect
 	github.com/redis/go-redis/v9 v9.5.1 // indirect
+	github.com/serjvanilla/go-overpass v0.0.0-20220918094045-58606372f808 // indirect
 	github.com/tkrajina/gpxgo v1.1.2 // indirect
 	github.com/yuriizinets/go-nominatim v1.3.0 // indirect
 	golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d // indirect
