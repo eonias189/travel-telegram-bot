@@ -10,13 +10,13 @@ type HandlerFunc func(ctx *Context) error
 
 type Api struct {
 	MiddlewareMixin
-	onError    func(error)
+	onError    func(ctx *Context, err error)
 	onCommand  HandlerFunc
 	onCallback HandlerFunc
 	onText     HandlerFunc
 }
 
-func (a *Api) OnError(handler func(error)) {
+func (a *Api) OnError(handler func(ctx *Context, err error)) {
 	if handler != nil {
 		a.onError = handler
 	}
@@ -76,7 +76,7 @@ func (a *Api) Run(ctx context.Context, token string) error {
 			}
 
 			if err != nil {
-				a.onError(err)
+				a.onError(c, err)
 			}
 		}
 	}
@@ -84,7 +84,7 @@ func (a *Api) Run(ctx context.Context, token string) error {
 
 func NewApi() *Api {
 	return &Api{
-		onError:    func(err error) {},
+		onError:    func(ctx *Context, err error) {},
 		onCommand:  func(ctx *Context) error { return nil },
 		onCallback: func(ctx *Context) error { return nil },
 		onText:     func(ctx *Context) error { return nil },

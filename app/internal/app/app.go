@@ -64,8 +64,9 @@ func (a *App) handleAll() {
 	a.api.OnCommand(cmdr.ToHandler())
 	a.api.OnCallback(cbr.ToHandler())
 	a.api.OnText(ctxr.ToHandler())
-	a.api.OnError(func(err error) {
+	a.api.OnError(func(ctx *tgapi.Context, err error) {
 		a.logger.Error(err.Error())
+		ctx.SendString("произошла ошибка")
 	})
 
 	a.api.Use(logger.New(a.logger, dialogContextProvider))
