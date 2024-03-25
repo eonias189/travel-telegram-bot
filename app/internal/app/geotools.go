@@ -109,4 +109,48 @@ func handleGeoTools(opts AppHandlerOptions, locationService LocationService) {
 
 		return renderLocation(ctx, tripId, order)
 	})
+
+	opts.CallbackRouter.Handle("get-cafes", func(ctx *tgapi.Context) error {
+		tripId, err := utils.GetInt64(ctx.CallbackQuery(), "tripId")
+		if err != nil {
+			return err
+		}
+
+		order, err := utils.GetInt(ctx.CallbackQuery(), "order")
+		if err != nil {
+			return err
+		}
+
+		loc, err := locationService.Get(tripId, order)
+		if err != nil {
+			return err
+		}
+
+		p := s2.LatLngFromDegrees(loc.Lat, loc.Lng)
+		cafes, err := geoapi.GetCafes(p, 10000, 10)
+		if err != nil {
+			return err
+		}
+
+		if len(cafes) == 0 {
+			return ctx.SendString("ресторанов и кафе рядом не найдено")
+		}
+
+		cafeStrings := utils.Map(cafes, func(c geoapi.SearchResp) string {
+			addr, err := geoapi.GetAddress(c.P)
+			if err != nil {
+				opts.Logger.Error(err.Error())
+				return fmt.Sprintf(`%v (адрес не найден)`, c.Name)
+			}
+			return fmt.Sprintf(`%v: г. %v ул. %v %v`, c.Name, addr.City, addr.Road, addr.HouseNumber)
+		})
+
+		text := fmt.Sprintf("Отели рядом:\n%v", strings.Join(cafeStrings, ",\n"))
+		err = ctx.SendString(text)
+		if err != nil {
+			return err
+		}
+
+		return renderLocation(ctx, tripId, order)
+	})
 }

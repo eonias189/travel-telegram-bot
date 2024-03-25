@@ -72,3 +72,35 @@ func GetHotels(p s2.LatLng, around int, limit int) ([]SearchResp, error) {
 	return res, nil
 
 }
+
+func GetCafes(p s2.LatLng, around int, limit int) ([]SearchResp, error) {
+
+	ar := fmt.Sprintf(`(around:%v,%v, %v)`, around, p.Lat, p.Lng)
+	query := fmt.Sprintf(`
+	[out:json];
+(
+  node["name"]["amenity"="restaurant"]%v;
+  node["name"]["amenity"="cafe"]%v;
+);
+out body;
+	`, ar, ar)
+
+	c := overpass.New()
+	resp, err := c.Query(query)
+	if err != nil {
+		return []SearchResp{}, err
+	}
+
+	res := []SearchResp{}
+	var count int
+	for _, n := range resp.Nodes {
+		if count == limit {
+			break
+		}
+		res = append(res, SearchResp{Name: n.Tags["name"], P: s2.LatLngFromDegrees(n.Lat, n.Lon)})
+		count++
+	}
+
+	return res, nil
+
+}

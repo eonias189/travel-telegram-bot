@@ -52,6 +52,7 @@ func LocationMessage(tripId, senderId int64, location service.Location) tgbotapi
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("назад", fmt.Sprintf(`locations?tripId=%v`, tripId))),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("достопримечательности рядом", fmt.Sprintf(`get-attractions?tripId=%v&order=%v`, tripId, location.Order))),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("подбор отелей", fmt.Sprintf(`get-hotels?tripId=%v&order=%v`, tripId, location.Order))),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("подбор кафе и ресторанов", fmt.Sprintf(`get-cafes?tripId=%v&order=%v`, tripId, location.Order))),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("изменить локацию", fmt.Sprintf(`change-location-name?tripId=%v&order=%v`, tripId, location.Order))),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("изменить дату прибытя", fmt.Sprintf(`change-location-start?tripId=%v&order=%v`, tripId, location.Order))),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("изменить дату отбытия", fmt.Sprintf(`change-location-end?tripId=%v&order=%v`, tripId, location.Order))),
