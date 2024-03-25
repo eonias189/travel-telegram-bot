@@ -85,7 +85,11 @@ func (a *App) handleAll() {
 
 	cmdr.Handle("otmena", func(ctx *tgapi.Context) error {
 		dialogContextProvider.SetDialogContext(ctx, "")
-		return ctx.SendString("отмена контекста")
+		err := ctx.SendString("отмена контекста")
+		if err != nil {
+			return err
+		}
+		return ctx.SendMessage(msgtempl.MenuMsg(ctx.SenderID()))
 	})
 
 	handleProfile(handlerOptions, userService)

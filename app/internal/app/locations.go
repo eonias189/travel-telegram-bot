@@ -2,31 +2,16 @@ package app
 
 import (
 	"fmt"
-	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/geoapi"
 	msgtempl "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/msgtemplates"
+	"github.com/Central-University-IT-prod/backend-eonias189/internal/lib/utils"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/service"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/tgapi"
 )
 
 func handleLocations(opts AppHandlerOptions, locationService LocationService) {
-
-	var getInt64 = func(query url.Values, key string) (int64, error) {
-		str := query.Get(key)
-		if str == "" {
-			return 0, ErrInternal
-		}
-
-		rInt, err := strconv.Atoi(str)
-		if err != nil {
-			return 0, err
-		}
-
-		return int64(rInt), nil
-	}
 
 	var renderLocations = func(tripId int64, ctx *tgapi.Context) error {
 		locations, err := locationService.GetAll(tripId)
@@ -46,7 +31,7 @@ func handleLocations(opts AppHandlerOptions, locationService LocationService) {
 	}
 
 	opts.CallbackRouter.Handle("locations", func(ctx *tgapi.Context) error {
-		tripId, err := getInt64(ctx.CallbackQuery(), "tripId")
+		tripId, err := utils.GetInt64(ctx.CallbackQuery(), "tripId")
 		if err != nil {
 			return err
 		}
@@ -55,7 +40,7 @@ func handleLocations(opts AppHandlerOptions, locationService LocationService) {
 	})
 
 	opts.CallbackRouter.Handle("new-location", func(ctx *tgapi.Context) error {
-		tripId, err := getInt64(ctx.CallbackQuery(), "tripId")
+		tripId, err := utils.GetInt64(ctx.CallbackQuery(), "tripId")
 		if err != nil {
 			return err
 		}
@@ -65,7 +50,7 @@ func handleLocations(opts AppHandlerOptions, locationService LocationService) {
 	})
 
 	opts.ContextRouter.Handle("location-name-input", func(ctx *tgapi.Context) error {
-		tripId, err := getInt64(opts.Dcqp.GetDialogContextQuery(ctx), "tripId")
+		tripId, err := utils.GetInt64(opts.Dcqp.GetDialogContextQuery(ctx), "tripId")
 		if err != nil {
 			return err
 		}
@@ -80,7 +65,7 @@ func handleLocations(opts AppHandlerOptions, locationService LocationService) {
 	})
 
 	opts.ContextRouter.Handle("location-start-input", func(ctx *tgapi.Context) error {
-		tripId, err := getInt64(opts.Dcqp.GetDialogContextQuery(ctx), "tripId")
+		tripId, err := utils.GetInt64(opts.Dcqp.GetDialogContextQuery(ctx), "tripId")
 		if err != nil {
 			return err
 		}
@@ -107,7 +92,7 @@ func handleLocations(opts AppHandlerOptions, locationService LocationService) {
 
 	opts.ContextRouter.Handle("location-end-input", func(ctx *tgapi.Context) error {
 		query := opts.Dcqp.GetDialogContextQuery(ctx)
-		tripId, err := getInt64(query, "tripId")
+		tripId, err := utils.GetInt64(query, "tripId")
 		if err != nil {
 			return err
 		}
@@ -117,7 +102,7 @@ func handleLocations(opts AppHandlerOptions, locationService LocationService) {
 			return ErrInternal
 		}
 
-		start, err := getInt64(query, "start")
+		start, err := utils.GetInt64(query, "start")
 		if err != nil {
 			return err
 		}
@@ -137,9 +122,16 @@ func handleLocations(opts AppHandlerOptions, locationService LocationService) {
 			return err
 		}
 
+		coords, err := geoapi.GetCoords(name)
+		if err != nil {
+			return ErrInternal
+		}
+
 		location := service.Location{
 			Order:     len(locations) + 1,
 			Name:      name,
+			Lat:       coords.Lat.Degrees(),
+			Lng:       coords.Lng.Degrees(),
 			StartTime: start,
 			EndTime:   t.UnixNano(),
 		}
@@ -156,32 +148,30 @@ func handleLocations(opts AppHandlerOptions, locationService LocationService) {
 	})
 
 	opts.CallbackRouter.Handle("location", func(ctx *tgapi.Context) error {
-		tripId, err := getInt64(ctx.CallbackQuery(), "tripId")
+		tripId, err := utils.GetInt64(ctx.CallbackQuery(), "tripId")
 		if err != nil {
 			return err
 		}
 
-		orderInt64, err := getInt64(ctx.CallbackQuery(), "order")
+		order, err := utils.GetInt(ctx.CallbackQuery(), "order")
 		if err != nil {
 			return err
 		}
 
-		order := int(orderInt64)
 		return renderLocation(tripId, order, ctx)
 	})
 
 	opts.CallbackRouter.Handle("delete-location", func(ctx *tgapi.Context) error {
-		tripId, err := getInt64(ctx.CallbackQuery(), "tripId")
+		tripId, err := utils.GetInt64(ctx.CallbackQuery(), "tripId")
 		if err != nil {
 			return err
 		}
 
-		orderInt64, err := getInt64(ctx.CallbackQuery(), "order")
+		order, err := utils.GetInt(ctx.CallbackQuery(), "order")
 		if err != nil {
 			return err
 		}
 
-		order := int(orderInt64)
 		err = locationService.Delete(tripId, order)
 		if err != nil {
 			return err
@@ -191,33 +181,33 @@ func handleLocations(opts AppHandlerOptions, locationService LocationService) {
 	})
 
 	opts.CallbackRouter.Handle("change-location-start", func(ctx *tgapi.Context) error {
-		tripId, err := getInt64(ctx.CallbackQuery(), "tripId")
+		tripId, err := utils.GetInt64(ctx.CallbackQuery(), "tripId")
 		if err != nil {
 			return err
 		}
 
-		orderInt64, err := getInt64(ctx.CallbackQuery(), "order")
+		order, err := utils.GetInt(ctx.CallbackQuery(), "order")
 		if err != nil {
 			return err
 		}
 
-		opts.Dcs.SetDialogContext(ctx, fmt.Sprintf(`change-location-start?tripId=%v&order=%v`, tripId, int(orderInt64)))
+		opts.Dcs.SetDialogContext(ctx, fmt.Sprintf(`change-location-start?tripId=%v&order=%v`, tripId, order))
 		return ctx.SendString("введи новую дату прибытия в формате день.месяц.год/часы:минуты")
 	})
 
 	opts.ContextRouter.Handle("change-location-start", func(ctx *tgapi.Context) error {
 		query := opts.Dcqp.GetDialogContextQuery(ctx)
-		tripId, err := getInt64(query, "tripId")
+		tripId, err := utils.GetInt64(query, "tripId")
 		if err != nil {
 			return err
 		}
 
-		order, err := getInt64(query, "order")
+		order, err := utils.GetInt(query, "order")
 		if err != nil {
 			return err
 		}
 
-		loc, err := locationService.Get(tripId, int(order))
+		loc, err := locationService.Get(tripId, order)
 		if err != nil {
 			return err
 		}
@@ -233,7 +223,7 @@ func handleLocations(opts AppHandlerOptions, locationService LocationService) {
 		}
 		loc.StartTime = t.UnixNano()
 
-		err = locationService.Set(tripId, int(order), loc)
+		err = locationService.Set(tripId, order, loc)
 		if err != nil {
 			return err
 		}
@@ -243,33 +233,33 @@ func handleLocations(opts AppHandlerOptions, locationService LocationService) {
 	})
 
 	opts.CallbackRouter.Handle("change-location-end", func(ctx *tgapi.Context) error {
-		tripId, err := getInt64(ctx.CallbackQuery(), "tripId")
+		tripId, err := utils.GetInt64(ctx.CallbackQuery(), "tripId")
 		if err != nil {
 			return err
 		}
 
-		orderInt64, err := getInt64(ctx.CallbackQuery(), "order")
+		order, err := utils.GetInt(ctx.CallbackQuery(), "order")
 		if err != nil {
 			return err
 		}
 
-		opts.Dcs.SetDialogContext(ctx, fmt.Sprintf(`change-location-end?tripId=%v&order=%v`, tripId, int(orderInt64)))
+		opts.Dcs.SetDialogContext(ctx, fmt.Sprintf(`change-location-end?tripId=%v&order=%v`, tripId, order))
 		return ctx.SendString("введи новую дату отбытия в формате день.месяц.год/часы:минуты")
 	})
 
 	opts.ContextRouter.Handle("change-location-end", func(ctx *tgapi.Context) error {
 		query := opts.Dcqp.GetDialogContextQuery(ctx)
-		tripId, err := getInt64(query, "tripId")
+		tripId, err := utils.GetInt64(query, "tripId")
 		if err != nil {
 			return err
 		}
 
-		order, err := getInt64(query, "order")
+		order, err := utils.GetInt(query, "order")
 		if err != nil {
 			return err
 		}
 
-		loc, err := locationService.Get(tripId, int(order))
+		loc, err := locationService.Get(tripId, order)
 		if err != nil {
 			return err
 		}
@@ -286,60 +276,63 @@ func handleLocations(opts AppHandlerOptions, locationService LocationService) {
 
 		loc.EndTime = t.UnixNano()
 
-		err = locationService.Set(tripId, int(order), loc)
+		err = locationService.Set(tripId, order, loc)
 		if err != nil {
 			return err
 		}
 
 		opts.Dcs.SetDialogContext(ctx, "")
-		return renderLocation(tripId, int(order), ctx)
+		return renderLocation(tripId, order, ctx)
 	})
 
 	opts.CallbackRouter.Handle("change-location-name", func(ctx *tgapi.Context) error {
-		tripId, err := getInt64(ctx.CallbackQuery(), "tripId")
+		tripId, err := utils.GetInt64(ctx.CallbackQuery(), "tripId")
 		if err != nil {
 			return err
 		}
 
-		orderInt64, err := getInt64(ctx.CallbackQuery(), "order")
+		order, err := utils.GetInt(ctx.CallbackQuery(), "order")
 		if err != nil {
 			return err
 		}
 
-		opts.Dcs.SetDialogContext(ctx, fmt.Sprintf(`change-location-name?tripId=%v&order=%v`, tripId, int(orderInt64)))
+		opts.Dcs.SetDialogContext(ctx, fmt.Sprintf(`change-location-name?tripId=%v&order=%v`, tripId, order))
 		return ctx.SendString("введи новую локацию")
 	})
 
 	opts.ContextRouter.Handle("change-location-name", func(ctx *tgapi.Context) error {
 		query := opts.Dcqp.GetDialogContextQuery(ctx)
-		tripId, err := getInt64(query, "tripId")
+		tripId, err := utils.GetInt64(query, "tripId")
 		if err != nil {
 			return err
 		}
 
-		order, err := getInt64(query, "order")
+		order, err := utils.GetInt(query, "order")
 		if err != nil {
 			return err
 		}
 
-		loc, err := locationService.Get(tripId, int(order))
+		loc, err := locationService.Get(tripId, order)
 		if err != nil {
 			return err
 		}
 
 		location := ctx.Update.Message.Text
-		if !geoapi.CheckLocation(location) {
+		coords, err := geoapi.GetCoords(location)
+		if err != nil {
 			return ctx.SendString(fmt.Sprintf(`%v: не найдено`, location))
 		}
 
 		loc.Name = location
+		loc.Lat = coords.Lat.Degrees()
+		loc.Lng = coords.Lng.Degrees()
 
-		err = locationService.Set(tripId, int(order), loc)
+		err = locationService.Set(tripId, order, loc)
 		if err != nil {
 			return err
 		}
 
 		opts.Dcs.SetDialogContext(ctx, "")
-		return renderLocation(tripId, int(order), ctx)
+		return renderLocation(tripId, order, ctx)
 	})
 }

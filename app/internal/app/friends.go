@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"net/url"
 	"slices"
 	"strconv"
 
@@ -19,20 +18,6 @@ type SharePayload struct {
 var secretKey = "very very secret"
 
 func handleFriends(opts AppHandlerOptions, userService UserService, tripService TripService) {
-
-	var getInt64 = func(query url.Values, key string) (int64, error) {
-		resStr := query.Get(key)
-		if resStr == "" {
-			return 0, ErrInternal
-		}
-
-		resInt, err := strconv.Atoi(resStr)
-		if err != nil {
-			return 0, ErrInternal
-		}
-
-		return int64(resInt), nil
-	}
 
 	var renderTrips = func(ctx *tgapi.Context) error {
 		user, err := userService.Get(ctx.SenderID())
@@ -58,7 +43,7 @@ func handleFriends(opts AppHandlerOptions, userService UserService, tripService 
 	}
 
 	opts.CallbackRouter.Handle("share-trip", func(ctx *tgapi.Context) error {
-		tripId, err := getInt64(ctx.CallbackQuery(), "tripId")
+		tripId, err := utils.GetInt64(ctx.CallbackQuery(), "tripId")
 		if err != nil {
 			return err
 		}

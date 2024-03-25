@@ -10,10 +10,12 @@ import (
 )
 
 type Location struct {
-	Order     int    `json:"-"`
-	Name      string `json:"name"`
-	StartTime int64  `json:"startTime"`
-	EndTime   int64  `json:"endTime"`
+	Order     int     `json:"-"`
+	Name      string  `json:"name"`
+	Lat       float64 `json:"lat"`
+	Lng       float64 `json:"lng"`
+	StartTime int64   `json:"startTime"`
+	EndTime   int64   `json:"endTime"`
 }
 
 func (l Location) MarshalBinary() (data []byte, err error) {

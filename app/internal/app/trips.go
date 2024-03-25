@@ -3,11 +3,14 @@ package app
 import (
 	"errors"
 	"fmt"
-	"strconv"
 
+	"github.com/Central-University-IT-prod/backend-eonias189/internal/geoapi"
 	msgtempl "github.com/Central-University-IT-prod/backend-eonias189/internal/lib/msgtemplates"
+	"github.com/Central-University-IT-prod/backend-eonias189/internal/lib/utils"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/service"
 	"github.com/Central-University-IT-prod/backend-eonias189/internal/tgapi"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/golang/geo/s2"
 )
 
 func handleTrips(opts AppHandlerOptions, userService UserService, tripService TripService) {
@@ -88,15 +91,10 @@ func handleTrips(opts AppHandlerOptions, userService UserService, tripService Tr
 	})
 
 	opts.CallbackRouter.Handle("delete-trip", func(ctx *tgapi.Context) error {
-		query := ctx.CallbackQuery()
-		idStr := query.Get("id")
-
-		idInt, err := strconv.Atoi(idStr)
+		id, err := utils.GetInt64(ctx.CallbackQuery(), "id")
 		if err != nil {
 			return err
 		}
-
-		id := int64(idInt)
 
 		trip, err := tripService.Get(id)
 		if err != nil {
@@ -121,19 +119,66 @@ func handleTrips(opts AppHandlerOptions, userService UserService, tripService Tr
 	})
 
 	opts.CallbackRouter.Handle("trip", func(ctx *tgapi.Context) error {
-		query := ctx.CallbackQuery()
-		idStr := query.Get("id")
-		if idStr == "" {
-			return ErrInternal
-		}
-
-		idInt, err := strconv.Atoi(idStr)
+		id, err := utils.GetInt64(ctx.CallbackQuery(), "id")
 		if err != nil {
 			return err
 		}
 
-		id := int64(idInt)
 		trip, err := tripService.Get(id)
+		if err != nil {
+			return err
+		}
+
+		return ctx.SendMessage(msgtempl.TripMessage(ctx.SenderID(), trip))
+
+	})
+
+	opts.CallbackRouter.Handle("get-route", func(ctx *tgapi.Context) error {
+		tripId, err := utils.GetInt64(ctx.CallbackQuery(), "tripId")
+		if err != nil {
+			return err
+		}
+
+		trip, err := tripService.Get(tripId)
+		if err != nil {
+			return err
+		}
+
+		if len(trip.Locations) == 0 {
+			return ctx.SendString("в путешествии пока нет локаций")
+		}
+
+		user, err := userService.Get(ctx.SenderID())
+		if err != nil {
+			return err
+		}
+
+		start, err := geoapi.GetCoords(user.Location)
+		if err != nil || user.Location == "" {
+			return ctx.SendString("в профиле указана некорректная информация о локации")
+		}
+
+		points := make([]s2.LatLng, len(trip.Locations)+1)
+		points[0] = start
+		for i, loc := range trip.Locations {
+			points[i+1] = s2.LatLngFromDegrees(loc.Lat, loc.Lng)
+		}
+
+		img, err := geoapi.GetRouteImg(points)
+		if err != nil {
+			return err
+		}
+
+		data, err := geoapi.ConvertToBytes(img)
+		if err != nil {
+			return err
+		}
+
+		photoFileBytes := tgbotapi.FileBytes{
+			Name:  "picture",
+			Bytes: data,
+		}
+		_, err = ctx.Bot.Send(tgbotapi.NewPhoto(ctx.SenderID(), photoFileBytes))
 		if err != nil {
 			return err
 		}
