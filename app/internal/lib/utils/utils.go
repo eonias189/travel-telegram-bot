@@ -46,3 +46,36 @@ func Map[T any, R any](s []T, mod func(T) R) []R {
 	}
 	return res
 }
+
+type num interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64 |
+		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr |
+		~float32 | ~float64
+}
+
+func Min[T num](s []T) T {
+	if len(s) == 0 {
+		var t T
+		return t
+	}
+	res := s[0]
+	for _, i := range s {
+		if i < res {
+			res = i
+		}
+	}
+	return res
+}
+func Max[T num](s []T) T {
+	if len(s) == 0 {
+		var t T
+		return t
+	}
+	res := s[0]
+	for _, i := range s {
+		if i > res {
+			res = i
+		}
+	}
+	return res
+}

@@ -2,6 +2,7 @@ package geoapi
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/golang/geo/s2"
 	"github.com/yuriizinets/go-nominatim"
@@ -46,20 +47,19 @@ type Address struct {
 	City    string
 }
 
-func GetAddress(location string) (Address, error) {
+func GetAddress(p s2.LatLng) (nominatim.SearchAddress, error) {
 	n := nominatim.Nominatim{}
 	res, err := n.Search(nominatim.SearchParameters{
-		Query:          location,
+		Query:          fmt.Sprintf(`%v,%v`, p.Lat, p.Lng),
 		IncludeAddress: true,
 	})
 
 	if err != nil {
-		return Address{}, err
+		return nominatim.SearchAddress{}, err
 	}
 
 	if len(res) == 0 {
-		return Address{}, ErrNotFound
+		return nominatim.SearchAddress{}, ErrNotFound
 	}
-	a := Address{Country: res[0].Address.Country, City: res[0].Address.City}
-	return a, nil
+	return res[0].Address, nil
 }
