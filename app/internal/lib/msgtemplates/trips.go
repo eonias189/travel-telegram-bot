@@ -34,7 +34,7 @@ func TripMessage(senderId int64, trip service.Trip) tgbotapi.MessageConfig {
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("локации", fmt.Sprintf(`locations?tripId=%v`, trip.Id))),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("заметки", fmt.Sprintf(`notes?tripId=%v`, trip.Id))),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("проложить маршрут", fmt.Sprintf("get-route?tripId=%v", trip.Id))),
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("поделиться", fmt.Sprintf(`share-trip?tripId=%v`, trip.Id))),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("пригласить друзей", fmt.Sprintf(`share-trip?tripId=%v`, trip.Id))),
 	}
 
 	if trip.Creator == senderId {
